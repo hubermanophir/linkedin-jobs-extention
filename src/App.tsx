@@ -1,5 +1,6 @@
-import { useState } from "react";
+// import { useState } from "react";
 import "./App.css";
+// import Papa from "papaparse";
 
 interface LinkedinJobElement extends Element {
   dataset?: {
@@ -7,23 +8,22 @@ interface LinkedinJobElement extends Element {
   };
 }
 
+interface JobsWithDetails {
+  description: string;
+  jobId: string;
+  url: string;
+  company: string;
+}
+
 function App() {
-  // const [jobs, setJobs] = useState<
-  //   | {
-  //       jobId: string;
-  //       jobDescription: string;
-  //       url: string;
-  //     }
-  //   | []
-  // >([]);
-  const jobsWithDetails: any[] = [];
+  const jobsWithDetails: JobsWithDetails[] = [];
   // const [stopScraper, setStopScraper] = useState(false);
   const onclick = async () => {
     const [tab] = await chrome.tabs.query({ active: true });
     chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       args: [jobsWithDetails],
-      func: async (jobsWithDetails: any[]) => {
+      func: async (jobsWithDetails: JobsWithDetails[]) => {
         const scrollElementEnd = (scrollableElement: HTMLElement) => {
           scrollableElement.scrollIntoView({
             behavior: "smooth",
@@ -94,6 +94,12 @@ function App() {
               data["description"] = jobDescription?.textContent;
               data["jobId"] = jobId;
               data["url"] = window.location.href;
+              data["company"] = document
+                .querySelector(
+                  ".job-details-jobs-unified-top-card__company-name"
+                )
+                ?.textContent?.replace("\n", "")
+                .trim();
 
               jobsWithDetails.push(data);
               await wait(3000);
@@ -105,21 +111,17 @@ function App() {
           '[aria-label="View next page"]'
         ) as HTMLElement;
 
-        do {
-          await wait(10000);
-          await scrapePage();
-          nextButton && nextButton.click();
-        } while (nextButton);
-        console.log("Done");
-        // document.querySelector('[data-job-id="4161952581"]').click()
+        // do {
+        await wait(10000);
+        await scrapePage();
+        nextButton && nextButton.click();
 
-        //data-job-id="4161952581"
-        // alert(card?.textContent);
-        // window.scrollTo(0, document.body.scrollHeight);
+        // } while (nextButton);
+        // console.log("Done");
+        console.log({ jobsWithDetails });
       },
     });
   };
-
   return (
     <>
       <div>
