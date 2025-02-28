@@ -17,14 +17,19 @@ interface JobsWithDetails {
 
 function App() {
   const [jobsWithDetails, setJobsWithDetails] = useState<JobsWithDetails[]>([]);
+  // const [stopScraper, setStopScraper] = useState(false);
+  const [finishExtracting, setFinishExtracting] = useState(false);
+
   useEffect(() => {
     const messageListener = (message: {
       type: string;
       data: JobsWithDetails;
     }) => {
-      console.log({ message });
       if (message.type === "UPDATE_DATA") {
         setJobsWithDetails((prevData) => [...prevData, message.data]);
+      }
+      if (message.type === "FINISH") {
+        setFinishExtracting(true);
       }
     };
 
@@ -32,10 +37,6 @@ function App() {
     return () => chrome.runtime.onMessage.removeListener(messageListener);
   }, []);
 
-  useEffect(() => {
-    console.log({ jobsWithDetails });
-  }, [jobsWithDetails]);
-  // const [stopScraper, setStopScraper] = useState(false);
   const onclick = async () => {
     const [tab] = await chrome.tabs.query({ active: true });
     chrome.scripting.executeScript({
@@ -138,6 +139,10 @@ function App() {
         await scrapePage();
         nextButton && nextButton.click();
         // } while (nextButton);
+        chrome.runtime.sendMessage({
+          type: "FINISH",
+          data: null,
+        });
       },
     });
   };
@@ -160,7 +165,7 @@ function App() {
         <button style={{ width: 150 }} onClick={onclick}>
           Click to get Jobs Ids of page
         </button>
-        {jobsWithDetails && jobsWithDetails.length ? (
+        {finishExtracting ? (
           <button onClick={downloadCSV}>Click to download data</button>
         ) : (
           <></>
