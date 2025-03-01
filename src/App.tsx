@@ -39,12 +39,10 @@ function App() {
 
   const onclick = async () => {
     const [tab] = await chrome.tabs.query({ active: true });
-    chrome.scripting.executeScript({
+    await chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       args: [],
       func: async () => {
-        chrome.runtime.sendMessage("test");
-
         const scrollElementEnd = (scrollableElement: HTMLElement) => {
           scrollableElement.scrollIntoView({
             behavior: "smooth",
