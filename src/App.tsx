@@ -17,7 +17,6 @@ interface JobsWithDetails {
 
 function App() {
   const [jobsWithDetails, setJobsWithDetails] = useState<JobsWithDetails[]>([]);
-  // const [stopScraper, setStopScraper] = useState(false);
   const [finishExtracting, setFinishExtracting] = useState(false);
 
   useEffect(() => {
@@ -39,10 +38,18 @@ function App() {
 
   const onclick = async () => {
     const [tab] = await chrome.tabs.query({ active: true });
+
     await chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       args: [],
       func: async () => {
+        const getRandomNumber = (min: number, max: number): number => {
+          if (min > max) {
+            [min, max] = [max, min];
+          }
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        };
+
         const scrollElementEnd = (scrollableElement: HTMLElement) => {
           scrollableElement.scrollIntoView({
             behavior: "smooth",
@@ -93,50 +100,57 @@ function App() {
             (job) => job.dataset?.occludableJobId
           );
 
-          for (let index = 0; index < 2; index++) {
+          for (let index = 0; index < jobsIds.length; index++) {
             const jobId = jobsIds[index];
-            if (jobId) {
-              const page = select(
-                document,
-                `[data-job-id="${jobId}"]`
-              ) as HTMLElement | null;
-              page && page.click();
-              await wait(2000);
-
-              const jobDescription = select(
-                document,
-                ".jobs-description__container"
-              ) as HTMLElement | null;
-
-              jobDescription && scrollElementEnd(jobDescription);
-              const data = Object.create(null);
-              data["description"] = jobDescription?.textContent;
-              data["jobId"] = jobId;
-              data["url"] = window.location.href;
-              data["company"] = document
-                .querySelector(
-                  ".job-details-jobs-unified-top-card__company-name"
-                )
-                ?.textContent?.replace("\n", "")
-                .trim();
-              chrome.runtime.sendMessage({
-                type: "UPDATE_DATA",
-                data,
-              });
-              await wait(3000);
+            if (!jobId) {
+              return;
             }
+
+            const page = select(
+              document,
+              `[data-job-id="${jobId}"]`
+            ) as HTMLElement | null;
+            if (!page) {
+              return;
+            }
+            page.click();
+            await wait(getRandomNumber(2000, 3000));
+
+            const jobDescription = select(
+              document,
+              ".jobs-description__container"
+            ) as HTMLElement | null;
+            if (!jobDescription) {
+              return;
+            }
+            scrollElementEnd(jobDescription);
+            const data = Object.create(null);
+            data["description"] = jobDescription?.textContent;
+            data["jobId"] = jobId;
+            data["url"] = window.location.href;
+            data["company"] = document
+              .querySelector(".job-details-jobs-unified-top-card__company-name")
+              ?.textContent?.replace("\n", "")
+              .trim();
+            data["employers_amount"] = document.querySelector(
+              ".jobs-company__inline-information"
+            )?.textContent;
+            chrome.runtime.sendMessage({
+              type: "UPDATE_DATA",
+              data,
+            });
+            await wait(getRandomNumber(4000, 6000));
           }
         };
-
-        let nextButton = document.querySelector(
-          '[aria-label="View next page"]'
-        ) as HTMLElement;
-
-        // do {
-        await wait(10000);
-        await scrapePage();
-        nextButton && nextButton.click();
-        // } while (nextButton);
+        let nextButton;
+        do {
+          nextButton = document.querySelector(
+            '[aria-label="View next page"]'
+          ) as HTMLElement;
+          await wait(10000);
+          await scrapePage();
+          nextButton && nextButton.click();
+        } while (nextButton);
         chrome.runtime.sendMessage({
           type: "FINISH",
           data: null,
@@ -168,6 +182,7 @@ function App() {
         ) : (
           <></>
         )}
+        <button onClick={async () => {}}>Stop scraper</button>
       </div>
     </>
   );
