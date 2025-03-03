@@ -1,12 +1,4 @@
-
-// import React from "react";
-interface LinkedinJobElement extends Element {
-  dataset?: {
-    occludableJobId?: string;
-  };
-}
-
-
+import { LinkedinJobElement } from "../types";
 
 export default function Scraper() {
   const onclick = async () => {
